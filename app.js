@@ -13,9 +13,41 @@ const DEFAULT_CONFIG = {
   className: "３年４組",
   teacher: "青松 政宏",
   deadline: "６月１５日（月）",
-  dates: ["7月10日(金)", "7月13日(月)", "7月14日(火)", "7月15日(水)", "7月16日(木)"],
+  dates: ["2026-07-10", "2026-07-13", "2026-07-14", "2026-07-15", "2026-07-16"],
   times: ["13:00","13:25","13:50","14:15","14:40","15:05","15:30","15:55","16:20","16:45","17:10"],
+  startTime: "13:00",
+  slotMinutes: 25,
 };
+
+const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
+const isISO = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v);
+
+function dateLabel(v) {
+  if (!isISO(v)) return v || "(日付未設定)";
+  const d = new Date(v + "T00:00:00");
+  return `${d.getMonth() + 1}月${d.getDate()}日(${WEEKDAYS[d.getDay()]})`;
+}
+function isoFromDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function addDays(iso, days) {
+  const base = isISO(iso) ? new Date(iso + "T00:00:00") : new Date();
+  base.setDate(base.getDate() + days);
+  return isoFromDate(base);
+}
+function addMinutesToTime(hhmm, mins) {
+  const [h, m] = hhmm.split(":").map(Number);
+  const total = h * 60 + m + mins;
+  const hh = Math.floor(total / 60) % 24;
+  const mm = ((total % 60) + 60) % 60;
+  return String(hh).padStart(2, "0") + ":" + String(mm).padStart(2, "0");
+}
+function generateTimes(start, minutes, count) {
+  const out = [];
+  let t = start;
+  for (let i = 0; i < count; i++) { out.push(t); t = addMinutesToTime(t, minutes); }
+  return out;
+}
 
 /* ---------- 状態管理 ---------- */
 function loadState() {
@@ -23,7 +55,14 @@ function loadState() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const s = JSON.parse(raw);
+      const legacy = s.config && !s.config.startTime; // 旧バージョン(日付が表示文字列)からの移行
       s.config = Object.assign({}, DEFAULT_CONFIG, s.config || {});
+      if (legacy) {
+        s.config.dates = structuredClone(DEFAULT_CONFIG.dates);
+        s.config.times = structuredClone(DEFAULT_CONFIG.times);
+        s.config.startTime = DEFAULT_CONFIG.startTime;
+        s.config.slotMinutes = DEFAULT_CONFIG.slotMinutes;
+      }
       s.submissions = s.submissions || [];
       return s;
     }
@@ -51,7 +90,10 @@ $("tabs").addEventListener("click", (e) => {
   const view = btn.dataset.view;
   $("view-parent").classList.toggle("is-active", view === "parent");
   $("view-teacher").classList.toggle("is-active", view === "teacher");
-  if (view === "teacher") renderTeacher();
+  $("view-edit").classList.toggle("is-active", view === "edit");
+  if (view === "parent") { renderParentHeader(); renderParentGrid(); }
+  else if (view === "teacher") renderTeacher();
+  else if (view === "edit") renderEdit();
 });
 
 /* ============================================================
@@ -70,7 +112,7 @@ function buildSlotGrid(tableEl, { interactive }) {
   c.times.forEach(t => { html += `<th>${t}</th>`; });
   html += "</tr></thead><tbody>";
   c.dates.forEach((d, di) => {
-    html += `<tr><th class="daycell" data-day="${di}">${d}</th>`;
+    html += `<tr><th class="daycell" data-day="${di}">${dateLabel(d)}</th>`;
     c.times.forEach((t, ti) => {
       const key = slotKey(di, ti);
       const on = interactive && draftSel.has(key) ? " on" : "";
@@ -166,7 +208,6 @@ $("p-load").addEventListener("click", () => {
    ============================================================ */
 function renderTeacher() {
   renderTeacherList();
-  renderSettings();
   renderResult();
 }
 
@@ -292,7 +333,7 @@ function renderResult() {
   c.times.forEach(t => { html += `<th>${t}</th>`; });
   html += "</tr></thead><tbody>";
   c.dates.forEach((d, di) => {
-    html += `<tr><th class="daycell" style="cursor:default">${d}</th>`;
+    html += `<tr><th class="daycell" style="cursor:default">${dateLabel(d)}</th>`;
     c.times.forEach((_, ti) => {
       const fam = slotMap[slotKey(di, ti)];
       if (fam) {
@@ -318,51 +359,103 @@ function renderResult() {
 }
 
 /* ============================================================
-   設定
+   編集画面
    ============================================================ */
-$("t-settings-toggle").addEventListener("click", () => {
-  const body = $("t-settings-body");
-  const card = body.closest(".collapsible");
-  const willOpen = body.hidden;
-  body.hidden = !willOpen;
-  card.classList.toggle("open", willOpen);
-});
-
-function renderSettings() {
+function renderEdit() {
   const c = state.config;
-  $("s-school").value = c.school;
-  $("s-class").value = c.className;
-  $("s-teacher").value = c.teacher;
-  $("s-deadline").value = c.deadline;
-  $("s-dates").value = c.dates.join("\n");
-  $("s-times").value = c.times.join("\n");
+  $("e-school").value = c.school;
+  $("e-class").value = c.className;
+  $("e-teacher").value = c.teacher;
+  $("e-deadline").value = c.deadline;
+  $("e-start").value = c.startTime;
+  $("e-minutes").value = c.slotMinutes;
+  $("e-count").value = c.times.length;
+  buildEditGrid();
 }
 
-$("s-save").addEventListener("click", () => {
-  const dates = $("s-dates").value.split("\n").map(x => x.trim()).filter(Boolean);
-  const times = $("s-times").value.split("\n").map(x => x.trim()).filter(Boolean);
-  if (!dates.length || !times.length) { alert("日付・時間枠を1つ以上入力してください。"); return; }
-  state.config = {
-    school: $("s-school").value.trim() || DEFAULT_CONFIG.school,
-    className: $("s-class").value.trim() || DEFAULT_CONFIG.className,
-    teacher: $("s-teacher").value.trim() || DEFAULT_CONFIG.teacher,
-    deadline: $("s-deadline").value.trim() || DEFAULT_CONFIG.deadline,
-    dates, times,
-  };
+function buildEditGrid() {
+  const c = state.config;
+  let html = "<thead><tr><th class='corner'></th>";
+  c.times.forEach((t, ti) => {
+    html += `<th class="time-h"><span>${t}</span><button class="mini-del col-del" data-ti="${ti}" title="この時間列を削除">×</button></th>`;
+  });
+  html += `<th class="add-h"><button class="mini-add col-add" title="時間列を追加">＋</button></th></tr></thead><tbody>`;
+  c.dates.forEach((d, di) => {
+    const val = isISO(d) ? d : "";
+    html += `<tr><th class="date-h">
+        <input type="date" class="date-input" data-di="${di}" value="${val}">
+        <span class="date-lbl">${dateLabel(d)}</span>
+        <button class="mini-del row-del-date" data-di="${di}" title="この日付行を削除">×</button>
+      </th>`;
+    c.times.forEach(() => { html += `<td class="pv"></td>`; });
+    html += `<td class="pv"></td></tr>`;
+  });
+  html += `<tr><th class="add-row"><button class="mini-add row-add" title="日付行を追加">＋ 日付を追加</button></th>
+      <td class="pv" colspan="${c.times.length + 1}"></td></tr>`;
+  html += "</tbody>";
+  $("e-grid").innerHTML = html;
+}
+
+function commitEdit() {
   state.assignment = null;
   saveState();
-  renderParentHeader();
-  renderTeacher();
-  alert("設定を保存しました。");
+}
+
+// 基本情報の変更
+[["e-school", "school"], ["e-class", "className"], ["e-teacher", "teacher"], ["e-deadline", "deadline"]]
+  .forEach(([id, key]) => {
+    $(id).addEventListener("change", () => {
+      state.config[key] = $(id).value.trim() || DEFAULT_CONFIG[key];
+      saveState();
+      renderParentHeader();
+    });
+  });
+
+// 時間列の再生成
+$("e-regen").addEventListener("click", () => {
+  const start = $("e-start").value || DEFAULT_CONFIG.startTime;
+  const minutes = Math.max(1, Number($("e-minutes").value) || DEFAULT_CONFIG.slotMinutes);
+  const count = Math.max(1, Number($("e-count").value) || 1);
+  state.config.startTime = start;
+  state.config.slotMinutes = minutes;
+  state.config.times = generateTimes(start, minutes, count);
+  commitEdit();
+  buildEditGrid();
 });
 
-$("s-reset").addEventListener("click", () => {
-  if (!confirm("枠の設定を既定値に戻します。よろしいですか？")) return;
-  state.config = structuredClone(DEFAULT_CONFIG);
-  state.assignment = null;
-  saveState();
-  renderParentHeader();
-  renderTeacher();
+// グリッドの ＋ / × 操作
+$("e-grid").addEventListener("click", (e) => {
+  const c = state.config;
+  if (e.target.closest(".col-add")) {
+    const last = c.times[c.times.length - 1];
+    c.times.push(last ? addMinutesToTime(last, c.slotMinutes) : c.startTime);
+    commitEdit(); buildEditGrid(); $("e-count").value = c.times.length; return;
+  }
+  const colDel = e.target.closest(".col-del");
+  if (colDel) {
+    if (c.times.length <= 1) { alert("時間列は1つ以上必要です。"); return; }
+    c.times.splice(Number(colDel.dataset.ti), 1);
+    commitEdit(); buildEditGrid(); $("e-count").value = c.times.length; return;
+  }
+  if (e.target.closest(".row-add")) {
+    const last = c.dates[c.dates.length - 1];
+    c.dates.push(addDays(last, 1));
+    commitEdit(); buildEditGrid(); return;
+  }
+  const rowDel = e.target.closest(".row-del-date");
+  if (rowDel) {
+    if (c.dates.length <= 1) { alert("日付は1つ以上必要です。"); return; }
+    c.dates.splice(Number(rowDel.dataset.di), 1);
+    commitEdit(); buildEditGrid(); return;
+  }
+});
+
+// 日付セルの変更
+$("e-grid").addEventListener("change", (e) => {
+  const inp = e.target.closest(".date-input");
+  if (!inp) return;
+  state.config.dates[Number(inp.dataset.di)] = inp.value;
+  commitEdit(); buildEditGrid();
 });
 
 /* ============================================================

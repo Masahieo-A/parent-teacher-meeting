@@ -16,6 +16,7 @@
       <nav class="tabs" id="tabs">
         <button class="tab is-active" data-view="parent">保護者入力</button>
         <button class="tab" data-view="teacher">教員管理</button>
+        <button class="tab" data-view="edit">編集</button>
       </nav>
     </div>
   </header>
@@ -98,35 +99,43 @@
         <div id="t-unassigned"></div>
       </div>
 
-      <div class="card collapsible">
-        <div class="section-head clickable" id="t-settings-toggle">
-          <h2>枠の設定 <span class="muted small">（日付・時間の編集）</span></h2>
-          <span class="chevron">▾</span>
-        </div>
-        <div class="settings-body" id="t-settings-body" hidden>
-          <div class="form-row">
-            <label>学校名<input type="text" id="s-school"></label>
-            <label>クラス名<input type="text" id="s-class"></label>
-            <label>担任名<input type="text" id="s-teacher"></label>
-            <label>提出期限<input type="text" id="s-deadline"></label>
-          </div>
-          <div class="form-row">
-            <label class="grow">日付（1行に1つ）
-              <textarea id="s-dates" rows="5"></textarea>
-            </label>
-            <label class="grow">時間枠（1行に1つ）
-              <textarea id="s-times" rows="5"></textarea>
-            </label>
-          </div>
-          <div class="actions left">
-            <button class="btn btn-primary" id="s-save">設定を保存</button>
-            <button class="btn btn-ghost" id="s-reset">既定値に戻す</button>
-          </div>
-          <p class="muted small">※ 設定を変更すると、提出済みの○位置がずれる場合があります。データ収集前に確定してください。</p>
+    </section>
+
+    <!-- ===================== 編集画面 ===================== -->
+    <section id="view-edit" class="view">
+      <div class="card">
+        <h2>基本情報</h2>
+        <div class="form-row" style="margin-top:12px;">
+          <label>学校名<input type="text" id="e-school"></label>
+          <label>クラス名<input type="text" id="e-class"></label>
+          <label>担任名<input type="text" id="e-teacher"></label>
+          <label>提出期限<input type="text" id="e-deadline"></label>
         </div>
       </div>
 
+      <div class="card">
+        <h2>時間枠の自動生成</h2>
+        <p class="muted small" style="margin-top:6px;">開始時間・1枠の長さ・枠数から、等間隔の時間列をまとめて作り直します。下の表の ＋／× で個別に調整もできます。</p>
+        <div class="form-row" style="margin-top:12px; align-items:flex-end;">
+          <label>最も早い開始時間<input type="time" id="e-start"></label>
+          <label>1枠の時間（分）<input type="number" id="e-minutes" min="1" step="5"></label>
+          <label>時間枠数（列）<input type="number" id="e-count" min="1"></label>
+          <div><button class="btn btn-primary" id="e-regen">この設定で時間列を再生成</button></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-head">
+          <h2>カレンダー編集</h2>
+        </div>
+        <p class="muted small">日付セルで日にちを設定します。行（日付）は左端の ＋ で追加・各行の × で削除、列（時間）は上端の ＋ で追加・各列の × で削除できます。</p>
+        <div class="grid-scroll" style="margin-top:10px;">
+          <table class="edit-grid" id="e-grid"></table>
+        </div>
+        <p class="edit-note muted small">※ 変更は即座に「保護者入力」「教員管理」画面に反映されます。提出データがある状態で枠を増減すると○の位置がずれる場合があるため、データ収集前に確定してください。</p>
+      </div>
     </section>
+
   </main>
 
   <script src="app.js"></script>

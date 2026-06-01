@@ -159,6 +159,32 @@ textarea { resize: vertical; }
 .settings-body[hidden] { display: none; }
 .empty { padding: 22px; text-align: center; color: var(--muted); }
 
+/* ---------- Edit grid ---------- */
+.edit-grid { border-collapse: collapse; width: 100%; min-width: 640px; }
+.edit-grid th, .edit-grid td { border: 1px solid var(--line); }
+.edit-grid .corner { background: #e8eef7; }
+.edit-grid thead th { background: #f1f5fb; padding: 6px 8px; font-size: 12px; }
+.edit-grid .time-h { white-space: nowrap; }
+.edit-grid .time-h span { display: block; font-weight: 700; color: #334155; }
+.edit-grid td.pv { height: 30px; background: #fff; }
+.edit-grid .date-h { background: #f8fafc; padding: 7px 10px; white-space: nowrap; position: sticky; left: 0; }
+.edit-grid .date-input { width: 150px; padding: 6px 8px; font-size: 13px; }
+.edit-grid .date-lbl { display: inline-block; margin: 0 8px; font-size: 12px; color: var(--muted); min-width: 92px; }
+.edit-grid .add-h, .edit-grid .add-row { background: #f8fafc; text-align: center; }
+.mini-add {
+  border: 1px solid var(--primary); color: var(--primary); background: #fff;
+  border-radius: 7px; min-width: 28px; height: 28px; padding: 0 8px;
+  font-size: 15px; font-weight: 700; cursor: pointer; line-height: 1;
+}
+.mini-add:hover { background: var(--primary); color: #fff; }
+.mini-add.row-add { width: auto; padding: 6px 12px; font-size: 13px; }
+.mini-del {
+  border: 0; background: transparent; color: var(--danger);
+  font-size: 14px; cursor: pointer; margin-left: 6px; padding: 0 2px;
+}
+.mini-del:hover { color: #991b1b; }
+.edit-note { margin-top: 12px; }
+
 @media (max-width: 560px) {
   .appbar-main { font-size: 16px; }
   .form-row label { min-width: 100%; }
