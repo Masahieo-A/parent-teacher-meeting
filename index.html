@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>保護者懇談会 日程調整</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="appbar">
+    <div class="appbar-inner">
+      <div class="appbar-title">
+        <span class="appbar-school" id="barSchool">名古屋市立富田高等学校</span>
+        <span class="appbar-main">保護者懇談会 日程調整</span>
+      </div>
+      <nav class="tabs" id="tabs">
+        <button class="tab is-active" data-view="parent">保護者入力</button>
+        <button class="tab" data-view="teacher">教員管理</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- ===================== 保護者画面 ===================== -->
+    <section id="view-parent" class="view is-active">
+      <div class="card intro">
+        <h1 id="p-title">３年４組 保護者懇談会 日程希望調査</h1>
+        <p class="muted" id="p-lead">
+          ご出席いただける時間帯をすべてタップして○を付け、最後に「希望を送信」を押してください。
+          ○が多いほど調整がスムーズになります。
+        </p>
+        <p class="deadline" id="p-deadline"></p>
+      </div>
+
+      <div class="card">
+        <div class="form-row">
+          <label>出席番号
+            <input type="number" id="f-number" min="1" inputmode="numeric" placeholder="例) 12">
+          </label>
+          <label>生徒氏名
+            <input type="text" id="f-student" placeholder="例) 富田 太郎">
+          </label>
+          <label>保護者氏名
+            <input type="text" id="f-parent" placeholder="例) 富田 花子">
+          </label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="grid-tools">
+          <span class="muted small">マスをタップで ○ / もう一度で解除。日付ラベルをタップでその日を一括 ○。</span>
+          <span class="chosen-count" id="p-count">選択中: 0 枠</span>
+        </div>
+        <div class="grid-scroll">
+          <table class="slot-grid" id="p-grid"></table>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary btn-lg" id="p-submit">希望を送信</button>
+        <button class="btn btn-ghost" id="p-load">入力済みデータを呼び出す</button>
+      </div>
+      <p class="submit-msg" id="p-msg"></p>
+    </section>
+
+    <!-- ===================== 教員画面 ===================== -->
+    <section id="view-teacher" class="view">
+
+      <div class="card">
+        <div class="section-head">
+          <h2>提出状況</h2>
+          <div class="head-actions">
+            <button class="btn btn-small btn-ghost" id="t-demo">デモデータ投入(40家庭)</button>
+            <button class="btn btn-small btn-danger-ghost" id="t-clear">全データ削除</button>
+          </div>
+        </div>
+        <div class="stats" id="t-stats"></div>
+        <div class="table-wrap">
+          <table class="list-table" id="t-list"></table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-head">
+          <h2>自動割り当て</h2>
+          <div class="head-actions">
+            <button class="btn btn-primary" id="t-assign">重複なしで自動割り当て</button>
+          </div>
+        </div>
+        <p class="muted small">
+          1枠につき1家庭。各家庭が○を付けた枠の中だけを使い、できるだけ多くの家庭が割り当たるよう最適化します（最大マッチング）。
+        </p>
+        <div class="assign-summary" id="t-assign-summary"></div>
+        <div class="grid-scroll">
+          <table class="slot-grid result-grid" id="t-result"></table>
+        </div>
+        <div id="t-unassigned"></div>
+      </div>
+
+      <div class="card collapsible">
+        <div class="section-head clickable" id="t-settings-toggle">
+          <h2>枠の設定 <span class="muted small">（日付・時間の編集）</span></h2>
+          <span class="chevron">▾</span>
+        </div>
+        <div class="settings-body" id="t-settings-body" hidden>
+          <div class="form-row">
+            <label>学校名<input type="text" id="s-school"></label>
+            <label>クラス名<input type="text" id="s-class"></label>
+            <label>担任名<input type="text" id="s-teacher"></label>
+            <label>提出期限<input type="text" id="s-deadline"></label>
+          </div>
+          <div class="form-row">
+            <label class="grow">日付（1行に1つ）
+              <textarea id="s-dates" rows="5"></textarea>
+            </label>
+            <label class="grow">時間枠（1行に1つ）
+              <textarea id="s-times" rows="5"></textarea>
+            </label>
+          </div>
+          <div class="actions left">
+            <button class="btn btn-primary" id="s-save">設定を保存</button>
+            <button class="btn btn-ghost" id="s-reset">既定値に戻す</button>
+          </div>
+          <p class="muted small">※ 設定を変更すると、提出済みの○位置がずれる場合があります。データ収集前に確定してください。</p>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
