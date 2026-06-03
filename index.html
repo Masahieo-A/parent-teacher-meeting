@@ -73,6 +73,9 @@
           <h2>提出状況</h2>
           <div class="head-actions">
             <button class="btn btn-small btn-ghost" id="t-demo">デモデータ投入(40家庭)</button>
+            <button class="btn btn-small btn-ghost" id="t-backup">バックアップ(JSON)</button>
+            <button class="btn btn-small btn-ghost" id="t-restore-btn">復元(JSON読込)</button>
+            <input type="file" id="t-restore-file" accept="application/json,.json" hidden>
             <button class="btn btn-small btn-danger-ghost" id="t-clear">全データ削除</button>
           </div>
         </div>
@@ -87,6 +90,7 @@
           <h2>自動割り当て</h2>
           <div class="head-actions">
             <button class="btn btn-primary" id="t-assign">重複なしで自動割り当て</button>
+            <button class="btn btn-ghost" id="t-export">Excel出力</button>
           </div>
         </div>
         <p class="muted small">
@@ -138,6 +142,7 @@
 
   </main>
 
+  <script src="xlsx.full.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

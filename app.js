@@ -299,6 +299,92 @@ $("t-assign").addEventListener("click", () => {
   renderResult();
 });
 
+/* ---------- Excel出力 ---------- */
+function todayStamp() {
+  const d = new Date();
+  return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+}
+
+$("t-export").addEventListener("click", () => {
+  if (typeof XLSX === "undefined") { alert("Excelライブラリの読み込みに失敗しました。ページを再読み込みしてください。"); return; }
+  if (!state.assignment) { alert("先に「重複なしで自動割り当て」を実行してください。"); return; }
+
+  const c = state.config;
+  const byId = new Map(state.submissions.map(s => [s.id, s]));
+  const slotMap = {}; // slotKey -> family
+  for (const [fid, key] of Object.entries(state.assignment)) slotMap[key] = byId.get(fid);
+
+  // --- シート1: 割当表（時間割レイアウト） ---
+  const head = [`${c.className}  保護者懇談会  割当表`];
+  const timeHeader = ["", ...c.times];
+  const gridRows = c.dates.map((d, di) =>
+    [dateLabel(d), ...c.times.map((_, ti) => {
+      const fam = slotMap[slotKey(di, ti)];
+      return fam ? `${fam.student}（No.${fam.number}）` : "";
+    })]
+  );
+  const aoa = [head, [], timeHeader, ...gridRows];
+  const ws1 = XLSX.utils.aoa_to_sheet(aoa);
+  ws1["!cols"] = [{ wch: 14 }, ...c.times.map(() => ({ wch: 16 }))];
+
+  // --- シート2: 割当一覧 ---
+  const assignedIds = new Set(Object.keys(state.assignment));
+  const listHeader = ["出席番号", "生徒氏名", "保護者氏名", "割当日", "割当時間", "状態"];
+  const rows = [...state.submissions]
+    .sort((a, b) => Number(a.number) - Number(b.number))
+    .map(s => {
+      const key = state.assignment[s.id];
+      if (key) {
+        const [di, ti] = key.split("_").map(Number);
+        return [s.number, s.student, s.parent || "", dateLabel(c.dates[di]), c.times[ti], "割当済"];
+      }
+      return [s.number, s.student, s.parent || "", "", "", "未割当"];
+    });
+  const ws2 = XLSX.utils.aoa_to_sheet([listHeader, ...rows]);
+  ws2["!cols"] = [{ wch: 8 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 10 }, { wch: 8 }];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws1, "割当表");
+  XLSX.utils.book_append_sheet(wb, ws2, "割当一覧");
+  XLSX.writeFile(wb, `懇談会割当_${todayStamp()}.xlsx`);
+});
+
+/* ---------- バックアップ / 復元 ---------- */
+$("t-backup").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `懇談会データ_${todayStamp()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+$("t-restore-btn").addEventListener("click", () => $("t-restore-file").click());
+$("t-restore-file").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!data || !Array.isArray(data.submissions) || !data.config) throw new Error("形式が不正です");
+      if (!confirm(`現在のデータを、バックアップ（${data.submissions.length}家庭）で置き換えます。よろしいですか？`)) return;
+      data.config = Object.assign({}, DEFAULT_CONFIG, data.config);
+      state = data;
+      saveState();
+      renderParentHeader();
+      renderTeacher();
+      alert("バックアップから復元しました。");
+    } catch (err) {
+      alert("復元に失敗しました：" + err.message);
+    } finally {
+      e.target.value = "";
+    }
+  };
+  reader.readAsText(file, "utf-8");
+});
+
 function renderResult() {
   const summary = $("t-assign-summary");
   const grid = $("t-result");
